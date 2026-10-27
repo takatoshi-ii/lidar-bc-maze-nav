@@ -35,12 +35,23 @@ def load_sessions(data_dir):
     return np.concatenate(scans), np.concatenate(labels)
 
 
+def print_result(acc, y_val, pred):
+    print(f'\n最良の検証正解率: {acc:.3f}')
+    print('混同行列 (行=お手本, 列=AI):', ACTIONS)
+    conf = np.zeros((len(ACTIONS), len(ACTIONS)), dtype=int)
+    for t, p in zip(y_val, pred):
+        conf[t, p] += 1
+    print(conf)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--data-dir', default=os.path.expanduser('~/bc_nav_data'))
     parser.add_argument('--out', default=os.path.expanduser('~/bc_nav_data/model.pt'))
     parser.add_argument('--epochs', type=int, default=200)
     parser.add_argument('--no-mirror', action='store_true', help='左右反転のデータ拡張を使わない')
+    parser.add_argument('--eval-only', action='store_true',
+                        help='学習せず、--out のモデルを同じ検証データで評価し直す(学習時の結果を再表示)')
     args = parser.parse_args()
 
     x, y = load_sessions(args.data_dir)
@@ -50,6 +61,17 @@ def main():
     val_idx, train_idx = idx[:n_val], idx[n_val:]
     x_train, y_train = x[train_idx], y[train_idx]
     x_val, y_val = x[val_idx], y[val_idx]
+
+    if args.eval_only:
+        ckpt = torch.load(args.out, map_location='cpu')
+        model = build_model(ckpt['n_bins'])
+        model.load_state_dict(ckpt['state_dict'])
+        model.eval()
+        with torch.no_grad():
+            pred = model(torch.from_numpy(x_val)).argmax(1).numpy()
+        print(f'モデル: {args.out} / 検証 {len(y_val)}')
+        print_result((pred == y_val).mean(), y_val, pred)
+        return
 
     if not args.no_mirror:
         x_train = np.concatenate([x_train, mirror_bins(x_train)])
@@ -92,12 +114,7 @@ def main():
     model.load_state_dict(best_state)
     with torch.no_grad():
         pred = model(xv).argmax(1).numpy()
-    print(f'\n最良の検証正解率: {best_acc:.3f}')
-    print('混同行列 (行=お手本, 列=AI):', ACTIONS)
-    conf = np.zeros((len(ACTIONS), len(ACTIONS)), dtype=int)
-    for t, p in zip(y_val, pred):
-        conf[t, p] += 1
-    print(conf)
+    print_result(best_acc, y_val, pred)
 
     os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
     torch.save({'state_dict': best_state, 'n_bins': x.shape[1], 'clip': DEFAULT_CLIP}, args.out)
