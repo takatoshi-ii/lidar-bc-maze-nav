@@ -6,7 +6,7 @@ AIはロボットに付いた **LiDAR（周囲360°の距離センサ）の値�
 
 Physical AI 応用編1 講座の最終課題として作成しました。
 
-- 動画: （YouTubeのURL）
+- 動画: https://youtu.be/QWV9pXOS_lI
 - 環境: ROS 2 Humble / Ignition Gazebo Fortress / Python / PyTorch（CPU）
 
 ## ベースにしたサンプルと、追加した部分
