@@ -1,0 +1,7 @@
+---
+#動画撮影用の真上カメラ(record_video:=true のときだけ使う)
+- ros_topic_name: "/overhead_camera"
+  gz_topic_name: "/overhead_camera"
+  ros_type_name: "sensor_msgs/msg/Image"
+  gz_type_name: "ignition.msgs.Image"
+  direction: GZ_TO_ROS
